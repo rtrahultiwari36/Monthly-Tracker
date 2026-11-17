@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4A2380">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Monthly Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#F7F5FB; --surface:#FFFFFF; --surface-2:#F0EBF8; --line:#E2DAEE;
+  --ink:#22183A; --ink-2:#5E5574; --ink-3:#8C849F;
+  --plum:#4A2380; --plum-ink:#FFFFFF; --plum-soft:#E9E0F6;
+  --leaf:#1F6B3A; --leaf-soft:#E2F2E7; --red:#B3261E; --red-soft:#FBE4E2;
+  --shadow:0 1px 0 rgba(34,24,58,.06);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#151020; --surface:#1E182C; --surface-2:#271F38; --line:#352C49;
+    --ink:#F1ECFA; --ink-2:#B9B0CC; --ink-3:#8A819E;
+    --plum:#9C78DA; --plum-ink:#170F24; --plum-soft:#2F2446;
+    --leaf:#6CCB8F; --leaf-soft:#1C3326; --red:#F28B82; --red-soft:#3A1F22;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#151020; --surface:#1E182C; --surface-2:#271F38; --line:#352C49;
+  --ink:#F1ECFA; --ink-2:#B9B0CC; --ink-3:#8A819E;
+  --plum:#9C78DA; --plum-ink:#170F24; --plum-soft:#2F2446;
+  --leaf:#6CCB8F; --leaf-soft:#1C3326; --red:#F28B82; --red-soft:#3A1F22;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:calc(env(safe-area-inset-top,0px) + 64px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--plum);outline-offset:2px}
+
+.wrap{max-width:560px;margin:0 auto;padding:0 16px}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 8px}
+.tabs{display:flex;gap:4px;background:var(--surface-2);border-radius:12px;padding:4px}
+.tab{flex:1;border:0;background:transparent;padding:9px 8px;border-radius:9px;font-weight:600;color:var(--ink-2);cursor:pointer}
+.tab[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:var(--shadow)}
+
+/* month + salary */
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 4px}
+.month{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1.1;margin:0}
+.month small{display:block;font-size:13px;font-weight:500;color:var(--ink-3);letter-spacing:0;margin-bottom:2px}
+.salary{display:flex;flex-direction:column;align-items:flex-end}
+.salary label{font-size:13px;color:var(--ink-3)}
+.salary .field{display:flex;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:0 10px;width:140px}
+.salary input{border:0;background:transparent;font:inherit;font-weight:700;color:var(--ink);width:100%;padding:8px 0;text-align:right;outline:none}
+.salary .field:focus-within{border-color:var(--plum)}
+.salary label + .field + label{margin-top:8px}
+
+/* the meter: the one bold thing */
+.meter{margin:18px 0 6px;padding:18px 18px 16px;background:var(--plum);color:var(--plum-ink);border-radius:20px}
+.meter .label{font-size:14px;opacity:.85}
+.meter .big{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.05;margin:2px 0 14px}
+.bar{height:10px;border-radius:99px;background:color-mix(in srgb,var(--plum-ink) 22%,transparent);overflow:hidden}
+.bar span{display:block;height:100%;background:var(--plum-ink);border-radius:99px;transition:width .3s ease}
+.bar.over span{background:#FFB4AB}
+.meter .row{display:flex;justify-content:space-between;font-size:13px;margin-top:8px;opacity:.9}
+
+/* sections */
+.sec{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin:12px 0;overflow:hidden}
+.sec-h{width:100%;display:flex;align-items:center;gap:10px;border:0;background:transparent;padding:14px 16px;cursor:pointer;text-align:left}
+.sec-h .ico{font-size:20px;width:26px;text-align:center}
+.sec-h .name{flex:1;font-weight:700;font-size:16px}
+.sec-h .tot{font-weight:700;color:var(--ink-2)}
+.sec-h .chev{width:18px;height:18px;color:var(--ink-3);transition:transform .2s}
+.sec[data-open="true"] .chev{transform:rotate(180deg)}
+.items{display:none;border-top:1px solid var(--line)}
+.sec[data-open="true"] .items{display:block}
+.item{display:flex;align-items:center;gap:12px;padding:6px 16px 6px 52px;border-bottom:1px solid var(--line)}
+.item:last-child{border-bottom:0}
+.item label{flex:1;font-size:15px;color:var(--ink)}
+.amt{display:flex;align-items:center;gap:2px;background:var(--surface-2);border-radius:9px;padding:0 10px;width:120px;border:1px solid transparent}
+.amt:focus-within{border-color:var(--plum);background:var(--surface)}
+.amt span{color:var(--ink-3)}
+.amt input{border:0;background:transparent;font:inherit;font-weight:600;color:var(--ink);width:100%;padding:9px 0;text-align:right;outline:none}
+
+.sumcard{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 16px;margin:16px 0}
+.sumrow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.sumrow:last-child{border-bottom:0}
+.sumrow b{font-weight:700}
+.pos{color:var(--leaf)} .neg{color:var(--red)}
+
+.spacer{height:120px}
+
+/* action bar */
+.actions{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.actions .in{max-width:560px;margin:0 auto}
+.status{font-size:12.5px;color:var(--ink-3);text-align:center;margin-bottom:8px;min-height:18px}
+.status.dirty{color:var(--red)}
+.btns{display:flex;gap:10px}
+.btn{flex:1;border:0;border-radius:12px;padding:14px 10px;font-weight:700;font-size:16px;cursor:pointer}
+.btn.save{background:var(--surface-2);color:var(--ink);border:1px solid var(--line)}
+.btn.submit{background:var(--plum);color:var(--plum-ink)}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* record */
+.rec-intro{color:var(--ink-2);font-size:14px;margin:14px 0 10px}
+.tablewrap{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:14px;-webkit-overflow-scrolling:touch}
+table{border-collapse:separate;border-spacing:0;font-size:14px;min-width:100%}
+th,td{padding:9px 12px;white-space:nowrap;border-bottom:1px solid var(--line);text-align:right}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--line);max-width:190px;white-space:normal;min-width:150px}
+thead th{background:var(--surface-2);font-weight:700;position:sticky;top:0}
+thead th:first-child{background:var(--surface-2);z-index:2}
+tr.sh td{background:var(--plum-soft);font-weight:700;color:var(--ink)}
+tr.sh td:first-child{background:var(--plum-soft)}
+tr.st td{font-weight:700}
+tr.sum td{background:var(--leaf-soft);font-weight:700}
+tr.sum td:first-child{background:var(--leaf-soft)}
+.empty{text-align:center;padding:40px 20px;color:var(--ink-2)}
+.empty b{display:block;color:var(--ink);font-size:18px;margin-bottom:6px}
+.export{margin:14px 0;border:1px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 14px;width:100%;font-weight:600;cursor:pointer}
+
+/* dialog + toast */
+.scrim{position:fixed;inset:0;background:rgba(20,12,34,.45);z-index:20;display:none;align-items:flex-end;justify-content:center;padding:16px}
+.scrim.show{display:flex}
+.dialog{background:var(--surface);border-radius:20px;padding:22px 20px calc(18px + env(safe-area-inset-bottom,0px));max-width:420px;width:100%}
+.dialog h2{margin:0 0 8px;font-size:20px}
+.dialog p{margin:0 0 18px;color:var(--ink-2);font-size:15px}
+.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(10px);
+  background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:all .25s;z-index:30;white-space:nowrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.note{font-size:13px;color:var(--ink-3);text-align:center;margin:8px 0}
+
+.addrow{display:flex;padding:8px 16px 12px 52px}
+.addbtn{border:1px dashed var(--line);background:transparent;border-radius:9px;padding:8px 12px;font-weight:600;font-size:14px;color:var(--plum);cursor:pointer;width:100%;text-align:left}
+.item .tag{font-size:11.5px;color:var(--ink-3);display:block;font-weight:500}
+.item{position:relative}
+.rm{position:absolute;left:12px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--ink-3);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:20px;line-height:1}
+.rm:hover{background:var(--surface-2);color:var(--red)}
+.form label.f{display:block;font-size:13px;color:var(--ink-2);margin:0 0 6px}
+.form input[type=text],.form select{width:100%;font:inherit;color:var(--ink);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;margin-bottom:14px;outline:none}
+.form input[type=text]:focus,.form select:focus{border-color:var(--plum)}
+.check{display:flex;gap:10px;align-items:flex-start;margin:2px 0 18px;font-size:15px;color:var(--ink)}
+.check input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--plum)}
+.check small{display:block;color:var(--ink-3);font-size:13px}
+.err{color:var(--red);font-size:13px;margin:-8px 0 12px;min-height:0}
+.mbtn{border:0;background:transparent;padding:0;margin:0;font:inherit;color:inherit;letter-spacing:inherit;cursor:pointer;display:inline-flex;align-items:center;gap:6px;text-align:left}
+.mbtn svg{width:20px;height:20px;flex:none;color:var(--plum);background:var(--plum-soft);border-radius:99px;padding:3px}
+.pick{display:flex;gap:10px}
+.pick select{flex:1}
+.brand{font-weight:800;font-size:17px;letter-spacing:-.01em;color:var(--plum);margin:0 2px 10px;display:flex;align-items:center;gap:6px}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <div class="brand"><span aria-hidden="true">💰</span> Monthly Tracker</div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-month" aria-selected="true">This month</button>
+    <button class="tab" role="tab" id="tab-record" aria-selected="false">Monthly record</button>
+  </div>
+</div></div>
+
+<main class="wrap">
+  <p class="note" id="loadNote" hidden></p>
+
+  <section id="view-month">
+    <div class="head">
+      <h1 class="month"><small>Filling in</small><button class="mbtn" id="monthBtn" aria-label="Change month"><span id="monthLabel">…</span><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M5 8l5 5 5-5"/></svg></button></h1>
+      <div class="salary">
+        <label for="salary">Monthly salary</label>
+        <div class="field"><span>₹</span><input id="salary" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+        <label for="other">Other income</label>
+        <div class="field"><span>₹</span><input id="other" inputmode="numeric" autocomplete="off" placeholder="0"></div>
+      </div>
+    </div>
+
+    <div class="meter" aria-live="polite">
+      <div class="label" id="leftLabel">Left from income</div>
+      <div class="big num" id="leftBig">₹0</div>
+      <div class="bar" id="bar"><span id="barFill" style="width:0%"></span></div>
+      <div class="row num"><span id="spentTxt">Spent ₹0</span><span id="salTxt">of ₹0</span></div>
+    </div>
+
+    <div id="sections"></div>
+
+    <div class="sumcard">
+      <div class="sumrow"><span>Monthly salary</span><b class="num" id="sSal">₹0</b></div>
+      <div class="sumrow"><span>Other income</span><b class="num" id="sOth">₹0</b></div>
+      <div class="sumrow"><span>Total income</span><b class="num" id="sInc">₹0</b></div>
+      <div class="sumrow"><span>Total expenses</span><b class="num" id="sExp">₹0</b></div>
+      <div class="sumrow"><span>Remaining from income</span><b class="num" id="sRem">₹0</b></div>
+      <div class="sumrow"><span>Savings rate (savings + remaining)</span><b class="num" id="sRate">0%</b></div>
+    </div>
+    <div class="spacer"></div>
+  </section>
+
+  <section id="view-record" hidden>
+    <p class="rec-intro">Every month you save appears as its own column. Scroll sideways to see more months.</p>
+    <div id="recordBox"></div>
+    <button class="export" id="exportBtn" hidden>Download record for Excel (.csv)</button>
+    <div class="spacer" style="height:40px"></div>
+  </section>
+</main>
+
+<div class="actions" id="actions"><div class="in">
+  <div class="status" id="status">Not saved yet</div>
+  <div class="btns">
+    <button class="btn save" id="saveBtn">Save</button>
+    <button class="btn submit" id="submitBtn">Submit month</button>
+  </div>
+</div></div>
+
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="dlgTitle">
+  <div class="dialog">
+    <h2 id="dlgTitle">Submit month?</h2>
+    <p id="dlgText"></p>
+    <div class="btns">
+      <button class="btn save" id="dlgCancel">Cancel</button>
+      <button class="btn submit" id="dlgOk">Submit</button>
+    </div>
+  </div>
+</div>
+<div class="scrim" id="addScrim" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+  <div class="dialog form">
+    <h2 id="addTitle">Add an expense</h2>
+    <p>It will show up every month until you remove it.</p>
+    <label class="f" for="addName">Expense name</label>
+    <input type="text" id="addName" maxlength="40" placeholder="e.g. Maid salary, Gym, Newspaper" autocomplete="off">
+    <div class="err" id="addErr"></div>
+    <label class="f" for="addSec">Section</label>
+    <select id="addSec"></select>
+    <label class="check"><input type="checkbox" id="addRepeat"><span>Same amount every month<small>Keeps the amount when you submit a month, like a fixed bill or EMI.</small></span></label>
+    <div class="btns">
+      <button class="btn save" id="addCancel">Cancel</button>
+      <button class="btn submit" id="addOk">Add expense</button>
+    </div>
+  </div>
+</div>
+<div class="scrim" id="monScrim" role="dialog" aria-modal="true" aria-labelledby="monTitle">
+  <div class="dialog form">
+    <h2 id="monTitle">Choose a month</h2>
+    <p>Pick any month, including past ones like April. Months you already saved open with their amounts so you can edit them.</p>
+    <div class="pick">
+      <div style="flex:1.4"><label class="f" for="pickMonth">Month</label><select id="pickMonth"></select></div>
+      <div style="flex:1"><label class="f" for="pickYear">Year</label><select id="pickYear"></select></div>
+    </div>
+    <div class="btns">
+      <button class="btn save" id="monCancel">Cancel</button>
+      <button class="btn submit" id="monOk">Open month</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+var SECTIONS = [
+  {id:"housing", icon:"🏠", name:"Housing & Utilities", items:[["rent","Rent"],["homeloan","Home Loan EMI"],["electricity","Electricity Bill"],["watergas","Water & Gas"],["mobile","Mobile & Internet"]]},
+  {id:"savings", icon:"💰", name:"Savings & Investments", savings:true, items:[["sip","SIP / Mutual Fund"],["emergency","Emergency Fund"]]},
+  {id:"food", icon:"🛒", name:"Food, Family & Education", items:[["groceries","Monthly Groceries"],["milk","Milk"],["vegetables","Vegetables"],["eatingout","Eating Out / Swiggy / Zomato"],["school","School / Tuition Fees"],["books","Books & Stationery"]]},
+  {id:"transport", icon:"🚗", name:"Transport", items:[["fuel","Petrol / Fuel"],["bus","Bus / Auto / Metro"],["vehicle","Vehicle Maintenance"]]},
+  {id:"health", icon:"🩺", name:"Health & Insurance", items:[["medicines","Medicines"],["doctor","Doctor Visits"],["insurance","Health Insurance Premium"]]},
+  {id:"personal", icon:"🛍️", name:"Personal Care & Shopping", items:[["clothing","Clothing"],["salon","Salon & Grooming"]]},
+  {id:"fun", icon:"🎬", name:"Entertainment & Lifestyle", items:[["movies","Movies & OTT Subscriptions"],["outings","Outings & Trips"]]},
+  {id:"loans", icon:"💳", name:"Loans & EMIs", items:[["phoneemi","Mobile Phone EMI"],["otheremi","Other Loan EMI"]]},
+  {id:"festivals", icon:"🎁", name:"Festivals, Gifts & Donations", items:[["gifts","Gifts"],["donations","Donations"]]}
+];
+var SEC_IDS=SECTIONS.map(function(s){return s.id;});
+var MONTHS=["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+function thisMonthKey(){var d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
+function monthName(k){var p=k.split("-");return MONTHS[+p[1]-1]+" "+p[0];}
+function nextMonth(k){var p=k.split("-"),y=+p[0],m=+p[1]+1;if(m>12){m=1;y++;}return y+"-"+String(m).padStart(2,"0");}
+var fmtN=new Intl.NumberFormat("en-IN");
+function rs(n){n=Math.round(n||0);return (n<0?"−₹":"₹")+fmtN.format(Math.abs(n));}
+function pct(x){return (Math.round(x*1000)/10).toFixed(1)+"%";}
+function $(id){return document.getElementById(id);}
+function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function clone(o){return JSON.parse(JSON.stringify(o));}
+
+var state={draft:{month:thisMonthKey(),salary:0,other:0,amounts:{}},record:{},custom:[]};
+function incomeOf(o){return (+o.salary||0)+(+o.other||0);}
+var dirty=false;
+var store=null, downloads=null;
+
+/* ---------- item registry ---------- */
+// current items in a section: built-in + your own
+function sectionItems(secId){
+  var s=SECTIONS[SEC_IDS.indexOf(secId)],out=s.items.map(function(it){return {id:it[0],name:it[1],sec:secId};});
+  state.custom.forEach(function(c){if(c.sec===secId)out.push(c);});
+  return out;
+}
+// every item ever used (adds removed own items that live on in saved months)
+function registry(){
+  var map={},list=[];
+  function add(it){if(!map[it.id]&&SEC_IDS.indexOf(it.sec)>=0){map[it.id]=it;list.push(it);}}
+  SECTIONS.forEach(function(s){s.items.forEach(function(it){add({id:it[0],name:it[1],sec:s.id});});});
+  state.custom.forEach(function(c){add(c);});
+  Object.keys(state.record).sort().forEach(function(k){(state.record[k].custom||[]).forEach(function(c){add(c);});});
+  return {map:map,list:list};
+}
+
+/* ---------- totals ---------- */
+function calc(salary,amounts,reg){
+  var secs={},total=0,sav=0;
+  SEC_IDS.forEach(function(id){secs[id]=0;});
+  Object.keys(amounts||{}).forEach(function(id){
+    var it=reg.map[id];if(!it)return;var v=+amounts[id]||0;secs[it.sec]+=v;total+=v;
+  });
+  SECTIONS.forEach(function(s){if(s.savings)sav+=secs[s.id];});
+  var rem=salary-total;
+  return {secs:secs,total:total,rem:rem,rate:salary>0?(sav+Math.max(rem,0))/salary:0};
+}
+
+/* ---------- render month ---------- */
+var openSecs={housing:true};
+function buildSections(){
+  var html="";
+  SECTIONS.forEach(function(s){
+    var open=!!openSecs[s.id];
+    html+='<div class="sec" data-open="'+open+'" id="sec-'+s.id+'">'+
+      '<button class="sec-h" aria-expanded="'+open+'" data-sec="'+s.id+'"><span class="ico" aria-hidden="true">'+s.icon+'</span>'+
+      '<span class="name">'+s.name+'</span><span class="tot num" id="tot-'+s.id+'">₹0</span>'+
+      '<svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l5 5 5-5"/></svg></button>'+
+      '<div class="items">';
+    sectionItems(s.id).forEach(function(it){
+      var own=!!it.own;
+      html+='<div class="item"><label for="in-'+it.id+'">'+esc(it.name)+
+        (own&&it.repeat?'<span class="tag">Same every month</span>':'')+'</label>'+
+        '<div class="amt"><span>₹</span><input id="in-'+it.id+'" data-item="'+it.id+'" inputmode="numeric" autocomplete="off" placeholder="0" class="num"></div>'+
+        (own?'<button class="rm" data-rm="'+it.id+'" aria-label="Remove '+esc(it.name)+'">×</button>':'')+
+        '</div>';
+    });
+    html+='<div class="addrow"><button class="addbtn" data-add="'+s.id+'">+ Add expense</button></div></div></div>';
+  });
+  $("sections").innerHTML=html;
+  fillInputs();
+}
+function fillInputs(){
+  $("salary").value=state.draft.salary?fmtN.format(state.draft.salary):"";
+  $("other").value=state.draft.other?fmtN.format(state.draft.other):"";
+  SEC_IDS.forEach(function(sid){sectionItems(sid).forEach(function(it){
+    var el=$("in-"+it.id);if(!el)return;var v=state.draft.amounts[it.id];el.value=v?fmtN.format(v):"";
+  });});
+}
+function renderTotals(){
+  var d=state.draft,inc=incomeOf(d),c=calc(inc,d.amounts,registry());
+  $("monthLabel").textContent=monthName(d.month);
+  SECTIONS.forEach(function(s){$("tot-"+s.id).textContent=rs(c.secs[s.id]);});
+  $("leftLabel").textContent=c.rem<0?"Over your income by":"Left from income";
+  $("leftBig").textContent=rs(Math.abs(c.rem));
+  var p=inc>0?Math.min(100,c.total/inc*100):(c.total>0?100:0);
+  $("barFill").style.width=p+"%";$("bar").classList.toggle("over",c.rem<0);
+  $("spentTxt").textContent="Spent "+rs(c.total);$("salTxt").textContent="of "+rs(inc)+" income";
+  $("sSal").textContent=rs(d.salary);$("sOth").textContent=rs(d.other);$("sInc").textContent=rs(inc);$("sExp").textContent=rs(c.total);
+  var r=$("sRem");r.textContent=rs(c.rem);r.className="num "+(c.rem<0?"neg":"pos");
+  $("sRate").textContent=pct(c.rate);
+  $("submitBtn").textContent="Submit "+MONTHS[+d.month.split("-")[1]-1];
+}
+function renderStatus(){
+  var s=$("status");
+  if(dirty){s.textContent="Changes not saved to your record";s.classList.add("dirty");}
+  else{s.classList.remove("dirty");
+    var rec=state.record[state.draft.month];
+    s.textContent=rec?"Saved "+new Date(rec.savedAt).toLocaleString("en-IN",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"}):"Not saved yet";}
+}
+
+/* ---------- record ---------- */
+function recordRows(){
+  var keys=Object.keys(state.record).sort(),reg=registry();
+  var cs=keys.map(function(k){var r=state.record[k];return {k:k,r:r,c:calc(incomeOf(r),r.amounts,reg)};});
+  var currentIds={};SEC_IDS.forEach(function(sid){sectionItems(sid).forEach(function(it){currentIds[it.id]=1;});});
+  var secs=SECTIONS.map(function(s){
+    var items=reg.list.filter(function(it){
+      if(it.sec!==s.id)return false;
+      if(currentIds[it.id])return true;
+      return cs.some(function(x){return +x.r.amounts[it.id];});
+    });
+    return {s:s,items:items};
+  });
+  return {keys:keys,cs:cs,secs:secs};
+}
+function renderRecord(){
+  var R=recordRows(),box=$("recordBox");
+  if(!R.keys.length){
+    box.innerHTML='<div class="tablewrap"><div class="empty"><b>No months saved yet</b>Tap Save on the This month tab and your amounts show up here.</div></div>';
+    $("exportBtn").hidden=true;return;
+  }
+  var h='<div class="tablewrap"><table><thead><tr><th scope="col">Item</th>';
+  R.keys.forEach(function(k){h+='<th scope="col">'+monthName(k)+'</th>';});
+  h+='</tr></thead><tbody>';
+  function row(cls,label,fn){h+='<tr'+(cls?' class="'+cls+'"':'')+'><td>'+label+'</td>';R.cs.forEach(function(x){h+='<td class="num">'+fn(x)+'</td>';});h+='</tr>';}
+  R.secs.forEach(function(g){
+    h+='<tr class="sh"><td>'+g.s.icon+' '+g.s.name+'</td>'+R.keys.map(function(){return '<td></td>';}).join("")+'</tr>';
+    g.items.forEach(function(it){row("",esc(it.name),function(x){var v=+x.r.amounts[it.id]||0;return v?rs(v):"–";});});
+    row("st","Total",function(x){return rs(x.c.secs[g.s.id]);});
+  });
+  row("sum","Monthly salary",function(x){return rs(x.r.salary);});
+  row("sum","Other income",function(x){return rs(x.r.other);});
+  row("sum","Total income",function(x){return rs(incomeOf(x.r));});
+  row("sum","Total expenses",function(x){return rs(x.c.total);});
+  row("sum","Remaining from income",function(x){return '<span class="'+(x.c.rem<0?"neg":"pos")+'">'+rs(x.c.rem)+'</span>';});
+  row("sum","Savings rate",function(x){return pct(x.c.rate);});
+  h+='</tbody></table></div>';
+  box.innerHTML=h;
+  $("exportBtn").hidden=false;
+}
+function buildCSV(){
+  var R=recordRows(),lines=[];
+  function q(s){s=String(s);return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+  lines.push(["Item"].concat(R.keys.map(monthName)).map(q).join(","));
+  R.secs.forEach(function(g){
+    lines.push(q(g.s.name.toUpperCase()));
+    g.items.forEach(function(it){lines.push([q(it.name)].concat(R.cs.map(function(x){return +x.r.amounts[it.id]||0;})).join(","));});
+    lines.push(["TOTAL"].concat(R.cs.map(function(x){return x.c.secs[g.s.id];})).join(","));
+  });
+  lines.push("");
+  lines.push(["MONTHLY SALARY"].concat(R.cs.map(function(x){return x.r.salary;})).join(","));
+  lines.push(["OTHER INCOME"].concat(R.cs.map(function(x){return +x.r.other||0;})).join(","));
+  lines.push(["TOTAL INCOME"].concat(R.cs.map(function(x){return incomeOf(x.r);})).join(","));
+  lines.push(["TOTAL EXPENSES"].concat(R.cs.map(function(x){return x.c.total;})).join(","));
+  lines.push(["REMAINING FROM INCOME"].concat(R.cs.map(function(x){return x.c.rem;})).join(","));
+  lines.push(["SAVINGS RATE"].concat(R.cs.map(function(x){return pct(x.c.rate);})).join(","));
+  return "\uFEFF"+lines.join("\r\n");
+}
+
+/* ---------- persistence ---------- */
+var draftTimer=null,writingDraft=Promise.resolve();
+function changed(){
+  dirty=true;renderTotals();renderStatus();
+  clearTimeout(draftTimer);draftTimer=setTimeout(persistDraft,1200);
+}
+function persistDraft(){
+  if(!store)return Promise.resolve();
+  writingDraft=writingDraft.then(function(){return store.saveDraft(state.draft);}).catch(function(){});
+  return writingDraft;
+}
+function saveToRecord(){
+  var d=state.draft;
+  state.record[d.month]={salary:d.salary,other:+d.other||0,amounts:clone(d.amounts),custom:clone(state.custom),savedAt:Date.now()};
+  return store.saveRecord(state.record);
+}
+
+function toast(msg){var t=$("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove("show");},2600);}
+function lock(b){$("saveBtn").disabled=b;$("submitBtn").disabled=b;}
+
+/* ---------- confirm dialog ---------- */
+var confirmCb=null;
+function ask(title,text,okLabel,cb){
+  $("dlgTitle").textContent=title;$("dlgText").textContent=text;$("dlgOk").textContent=okLabel;
+  confirmCb=cb;$("scrim").classList.add("show");$("dlgOk").focus();
+}
+$("dlgCancel").addEventListener("click",function(){$("scrim").classList.remove("show");});
+$("scrim").addEventListener("click",function(e){if(e.target===this)this.classList.remove("show");});
+$("dlgOk").addEventListener("click",function(){$("scrim").classList.remove("show");if(confirmCb)confirmCb();});
+
+/* ---------- section events ---------- */
+$("sections").addEventListener("click",function(e){
+  var h=e.target.closest(".sec-h");
+  if(h){var sec=$("sec-"+h.dataset.sec),open=sec.dataset.open!=="true";
+    sec.dataset.open=open;h.setAttribute("aria-expanded",open);openSecs[h.dataset.sec]=open;return;}
+  var add=e.target.closest("[data-add]");
+  if(add){openAdd(add.dataset.add);return;}
+  var rm=e.target.closest("[data-rm]");
+  if(rm){
+    var id=rm.dataset.rm,it=state.custom.filter(function(c){return c.id===id;})[0];if(!it)return;
+    ask("Remove "+it.name+"?","It won’t appear in new months. Months you already saved keep their amounts.","Remove",function(){
+      state.custom=state.custom.filter(function(c){return c.id!==id;});
+      delete state.draft.amounts[id];
+      store.saveSettings({custom:state.custom}).catch(function(){toast("Couldn’t remove. Check your connection");});
+      buildSections();changed();toast(it.name+" removed");
+    });
+  }
+});
+$("sections").addEventListener("input",function(e){
+  var el=e.target;if(!el.dataset.item)return;
+  var v=el.value.replace(/[^\d]/g,"");el.value=v?fmtN.format(+v):"";
+  if(v)state.draft.amounts[el.dataset.item]=+v;else delete state.draft.amounts[el.dataset.item];
+  changed();
+});
+
+/* ---------- add expense ---------- */
+$("addSec").innerHTML=SECTIONS.map(function(s){return '<option value="'+s.id+'">'+s.name+'</option>';}).join("");
+function openAdd(secId){
+  $("addName").value="";$("addErr").textContent="";$("addRepeat").checked=false;$("addSec").value=secId;
+  $("addScrim").classList.add("show");setTimeout(function(){$("addName").focus();},50);
+}
+function closeAdd(){$("addScrim").classList.remove("show");}
+$("addCancel").addEventListener("click",closeAdd);
+$("addScrim").addEventListener("click",function(e){if(e.target===this)closeAdd();});
+$("addName").addEventListener("keydown",function(e){if(e.key==="Enter")$("addOk").click();});
+$("addOk").addEventListener("click",function(){
+  var name=$("addName").value.trim().replace(/\s+/g," "),sec=$("addSec").value;
+  if(!name){$("addErr").textContent="Type a name for the expense.";$("addName").focus();return;}
+  var clash=sectionItems(sec).some(function(it){return it.name.toLowerCase()===name.toLowerCase();});
+  if(clash){$("addErr").textContent="This section already has "+name+".";$("addName").focus();return;}
+  var it={id:"c"+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36),name:name,sec:sec,own:true,repeat:$("addRepeat").checked};
+  state.custom.push(it);closeAdd();
+  openSecs[sec]=true;buildSections();renderTotals();
+  store.saveSettings({custom:state.custom}).then(function(){toast(name+" added");},function(){toast("Couldn’t save the new expense. Check your connection");});
+  var el=$("in-"+it.id);if(el){el.scrollIntoView({block:"center"});el.focus();}
+});
+
+/* ---------- change month ---------- */
+function fillMonthSel(){
+  var y=$("pickYear").value,cur=$("pickMonth").value;
+  $("pickMonth").innerHTML=MONTHS.map(function(m,i){var mm=String(i+1).padStart(2,"0");return '<option value="'+mm+'">'+m+(state.record[y+"-"+mm]?" (saved)":"")+'</option>';}).join("");
+  if(cur)$("pickMonth").value=cur;
+}
+$("monthBtn").addEventListener("click",function(){
+  var p=state.draft.month.split("-"),ny=new Date().getFullYear(),years=[];
+  for(var y=ny-3;y<=ny+1;y++)years.push(y);
+  if(years.indexOf(+p[0])<0){years.push(+p[0]);years.sort();}
+  $("pickYear").innerHTML=years.map(function(y){return '<option value="'+y+'">'+y+'</option>';}).join("");
+  $("pickYear").value=p[0];$("pickMonth").innerHTML="";fillMonthSel();$("pickMonth").value=p[1];
+  $("monScrim").classList.add("show");$("pickMonth").focus();
+});
+$("pickYear").addEventListener("change",fillMonthSel);
+$("monCancel").addEventListener("click",function(){$("monScrim").classList.remove("show");});
+$("monScrim").addEventListener("click",function(e){if(e.target===this)this.classList.remove("show");});
+$("monOk").addEventListener("click",function(){
+  var k=$("pickYear").value+"-"+$("pickMonth").value;
+  $("monScrim").classList.remove("show");
+  if(k!==state.draft.month)switchMonth(k);
+});
+function switchMonth(k){
+  lock(true);clearTimeout(draftTimer);
+  var old=state.draft.month;
+  var before=(dirty&&incomeOf(state.draft)>0)?saveToRecord().then(function(){return monthName(old);}):Promise.resolve(null);
+  before.then(function(savedName){
+    var r=state.record[k];
+    if(r){state.draft={month:k,salary:+r.salary||0,other:+r.other||0,amounts:clone(r.amounts||{})};}
+    else{
+      var keep={};
+      state.custom.forEach(function(c){if(c.repeat&&state.draft.amounts[c.id])keep[c.id]=state.draft.amounts[c.id];});
+      state.draft={month:k,salary:state.draft.salary,other:state.draft.other||0,amounts:keep};
+    }
+    return persistDraft().then(function(){return savedName;});
+  }).then(function(savedName){
+    dirty=false;fillInputs();renderTotals();renderStatus();
+    toast((savedName?savedName+" saved. ":"")+"Now filling "+monthName(k));
+    window.scrollTo(0,0);
+  }).catch(function(){toast("Couldn’t switch months. Check your connection and try again");})
+  .then(function(){lock(false);});
+}
+
+/* ---------- save / submit ---------- */
+$("saveBtn").addEventListener("click",function(){
+  if(!(incomeOf(state.draft)>0)){toast("Enter your salary or other income first");$("salary").focus();return;}
+  lock(true);clearTimeout(draftTimer);
+  Promise.all([saveToRecord(),persistDraft()]).then(function(){
+    dirty=false;renderStatus();toast("Saved "+monthName(state.draft.month));
+  }).catch(function(e){toast(e&&e.code==="quota_exceeded"?"Storage is full":"Couldn’t save. Check your connection and try again");})
+  .then(function(){lock(false);});
+});
+$("submitBtn").addEventListener("click",function(){
+  if(!(incomeOf(state.draft)>0)){toast("Enter your salary or other income first");$("salary").focus();return;}
+  var cur=monthName(state.draft.month),nxt=monthName(nextMonth(state.draft.month));
+  var keep=state.custom.some(function(c){return c.repeat;})?" Amounts marked “Same every month” carry over.":"";
+  ask("Submit "+cur+"?","This saves "+cur+" to your record, clears the amounts and starts "+nxt+". Your salary and other income stay the same, so you can change them if needed."+keep,"Submit",doSubmit);
+});
+function doSubmit(){
+  lock(true);clearTimeout(draftTimer);
+  var cur=monthName(state.draft.month);
+  saveToRecord().then(function(){
+    var keep={};
+    state.custom.forEach(function(c){if(c.repeat&&state.draft.amounts[c.id])keep[c.id]=state.draft.amounts[c.id];});
+    state.draft={month:nextMonth(state.draft.month),salary:state.draft.salary,other:state.draft.other||0,amounts:keep};
+    return persistDraft();
+  }).then(function(){
+    dirty=false;fillInputs();renderTotals();renderStatus();
+    toast(cur+" submitted. Now filling "+monthName(state.draft.month));
+    window.scrollTo(0,0);
+  }).catch(function(){toast("Couldn’t submit. Check your connection and try again");})
+  .then(function(){lock(false);});
+}
+
+$("salary").addEventListener("input",function(){
+  var v=this.value.replace(/[^\d]/g,"");this.value=v?fmtN.format(+v):"";
+  state.draft.salary=v?+v:0;changed();
+});
+$("other").addEventListener("input",function(){
+  var v=this.value.replace(/[^\d]/g,"");this.value=v?fmtN.format(+v):"";
+  state.draft.other=v?+v:0;changed();
+});
+$("exportBtn").addEventListener("click",function(){
+  if(!downloads){
+    try{var blob=new Blob([buildCSV()],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);a.download="monthly-tracker-record.csv";document.body.appendChild(a);a.click();
+      setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);}catch(e){toast("Download isn’t available here");}
+    return;
+  }
+  downloads.save({filename:"monthly-budget-record.csv",data:buildCSV()}).catch(function(e){
+    if(e&&e.code==="declined")return;toast("Download isn’t available here");
+  });
+});
+
+/* ---------- tabs ---------- */
+function showView(){
+  var rec=location.hash==="#record";
+  $("view-month").hidden=rec;$("view-record").hidden=!rec;$("actions").hidden=rec;
+  $("tab-month").setAttribute("aria-selected",!rec);$("tab-record").setAttribute("aria-selected",rec);
+  if(rec)renderRecord();
+}
+$("tab-month").addEventListener("click",function(){location.hash="month";});
+$("tab-record").addEventListener("click",function(){location.hash="record";});
+window.addEventListener("hashchange",function(){showView();window.scrollTo(0,0);});
+
+/* ---------- storage ---------- */
+function localStore(){
+  function get(k){try{var v=localStorage.getItem(k);return v?JSON.parse(v):null;}catch(e){return null;}}
+  function set(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}return Promise.resolve();}
+  return {loadDraft:function(){return Promise.resolve(get("budget-draft"));},loadRecord:function(){return Promise.resolve(get("budget-record"));},
+    loadSettings:function(){return Promise.resolve(get("budget-settings"));},
+    saveDraft:function(d){return set("budget-draft",d);},saveRecord:function(r){return set("budget-record",{months:r});},
+    saveSettings:function(s){return set("budget-settings",s);}};
+}
+function dbStore(db,uid){
+  var base="data/users/"+uid+"/";
+  var dDoc=db.doc(base+"draft"),rDoc=db.doc(base+"record"),sDoc=db.doc(base+"settings");
+  function retry(fn){return fn().catch(function(e){if(e&&e.code==="unavailable")return new Promise(function(r){setTimeout(r,600+Math.random()*600);}).then(fn);throw e;});}
+  function read(doc){return doc.get().then(function(s){return s.exists?s.data():null;});}
+  var q=Promise.resolve();
+  function serial(fn){q=q.then(fn,fn);return q;}
+  return {
+    loadDraft:function(){return read(dDoc);},loadRecord:function(){return read(rDoc);},loadSettings:function(){return read(sDoc);},
+    saveDraft:function(d){return retry(function(){return dDoc.set(clone(d));});},
+    saveRecord:function(r){return retry(function(){return rDoc.set({months:clone(r)});});},
+    saveSettings:function(s){var body=clone(s);return serial(function(){return retry(function(){return sDoc.set(body);});});}
+  };
+}
+// Uses your Claude account when it can write there; otherwise keeps everything on this device.
+function deviceOnly(){var n=$("loadNote");n.hidden=false;n.textContent="Your budget is saved on this device only.";}
+function hybridStore(dbs,loc){
+  var useLocal=false;
+  function goLocal(){
+    if(useLocal)return;useLocal=true;deviceOnly();
+    loc.saveDraft(state.draft);loc.saveRecord(state.record);loc.saveSettings({custom:state.custom});
+  }
+  function wrap(name){return function(x){
+    if(useLocal)return loc[name](x);
+    return dbs[name](x).catch(function(e){
+      var c=e&&e.code;
+      if(c==="invalid_argument"||c==="not_granted"||c==="revoked"||c==="capability_disabled"||c==="capability_removed"){goLocal();return loc[name](x);}
+      throw e;
+    });
+  };}
+  function load(name){return function(){
+    return dbs[name]().then(function(v){return v;},function(){return null;});
+  };}
+  return {
+    loadAll:function(){
+      return Promise.all([load("loadDraft")(),load("loadRecord")(),load("loadSettings")()]).then(function(res){
+        if(res[0]||res[1]||res[2])return res;
+        // nothing in the account: use this device’s copy if there is one
+        return Promise.all([loc.loadDraft(),loc.loadRecord(),loc.loadSettings()]).then(function(l){
+          if(l[0]||l[1]||l[2]){useLocal=true;deviceOnly();return l;}
+          return res;
+        });
+      });
+    },
+    saveDraft:wrap("saveDraft"),saveRecord:wrap("saveRecord"),saveSettings:wrap("saveSettings")
+  };
+}
+function withTimeout(p,ms){return Promise.race([p,new Promise(function(_,rej){setTimeout(function(){rej({code:"timeout"});},ms);})]);}
+function load(){
+  var all=store.loadAll?store.loadAll():Promise.all([store.loadDraft(),store.loadRecord(),store.loadSettings()]);
+  return withTimeout(all,10000).then(function(res){
+    var d=res[0],r=res[1],st=res[2];
+    if(d&&d.month)state.draft={month:d.month,salary:+d.salary||0,other:+d.other||0,amounts:d.amounts||{}};
+    if(r&&r.months)state.record=r.months;
+    if(st&&Array.isArray(st.custom))state.custom=st.custom.filter(function(c){return c&&c.id&&c.name&&SEC_IDS.indexOf(c.sec)>=0;});
+  }).catch(function(e){
+    $("loadNote").hidden=false;
+    $("loadNote").textContent=e&&e.code==="timeout"?"Your saved data can’t be reached yet. Check your connection.":"Your saved data couldn’t be loaded.";
+  });
+}
+
+function init(){
+  buildSections();renderTotals();renderStatus();showView();lock(true);
+  var cl=(window.claude&&typeof window.claude.use==="function")?window.claude:null;
+  var start=cl?Promise.all([cl.use("db"),cl.use("user"),cl.use("downloads")]).then(function(a){
+      downloads=a[2];var db=a[0],user=a[1];
+      if(!db||!user)return null;
+      return user.id().then(function(uid){return uid?hybridStore(dbStore(db,uid),localStore()):null;});
+    }).catch(function(){return null;}):Promise.resolve(null);
+  start.then(function(s){
+    if(!s){store=localStore();if(cl)deviceOnly();}else store=s;
+    return load();
+  })
+  .then(function(){lock(false);buildSections();renderTotals();renderStatus();showView();});
+}
+init();
+if("serviceWorker" in navigator&&location.protocol==="https:"){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}
+})();
+
+</script>
+</body>
+</html>
